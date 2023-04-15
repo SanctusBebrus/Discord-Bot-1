@@ -30,6 +30,29 @@ def after(error):
 
 
 @bot.command()
+async def playlist(ctx):  # Информация об очереди
+    embed = discord.Embed(color=0xff9900, title='Очередь из треков')
+    if len(queue) > 1:
+        to_print = ''
+        now_playing = ''
+        for n, track in enumerate(queue):
+            if n == 0:
+                now_playing = f"**{queue[0]['title']} - {queue[0]['artists'][0]}** `Длительность: {queue[0]['duration']}`"
+            else:
+                to_print += f"**{n}**: **{track['title']} - {track['artists'][0]}** `Длительность: {track['duration']}`\n"
+        embed.add_field(name='Сейчас играет', value=f"{now_playing}", inline=False)
+        embed.add_field(name='В очереди', value=f"{to_print}", inline=False)
+
+    elif len(queue) == 1:
+        now_playing = f"**{queue[0]['title']} - {queue[0]['artists'][0]}** `Длительность: {queue[0]['duration']}`"
+        embed.add_field(name='Сейчас играет', value=f"{now_playing}", inline=False)
+    else:
+        embed.add_field(name='Сейчас играет', value="**В данный момент очередь пуста!**", inline=False)
+    embed.set_footer(text='Yandex Music Bot', icon_url=discord_settings['bot_icon'])
+    await ctx.send(ctx.message.author.mention, embed=embed)
+
+
+@bot.command()
 async def hello(ctx):  # Поприветствовать пользователя
     author = ctx.message.author
     await ctx.send(f'Привет, {author.mention}!')
@@ -91,7 +114,7 @@ async def c(ctx, num: int):
     download_track(to_chose[num]['id'])
 
     await ctx.send(
-        f'{ctx.message.author.mention} добавил(а) `{to_chose[0]["title"]} - {", ".join(to_chose[0]["artists"])}` в очередь')
+        f'{ctx.message.author.mention} добавил(а) `{to_chose[num]["title"]} - {", ".join(to_chose[num]["artists"])}` в очередь')
 
     download_track(queue[0]['id'])
     to_chose.clear()
