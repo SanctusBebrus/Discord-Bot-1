@@ -3,7 +3,7 @@ yandex_api_settings = {
 }
 
 discord_settings = {
-    'token': 'MTA5NjM4ODExNjM5NjM4NDI1Ng.GwC1cy.cflOxyomLW_-bRPrb1Lljt4fGXy5kZpR8dI2Q0',
+    'token': 'MTA5NjM4ODExNjM5NjM4NDI1Ng.GvYLdp.jc4PRFCOmB_JMZPztAUBZJkPPZr1pyqviuepBY',
     'command_prefix': '!',
     'ffmpeg_path': 'C://ffmpeg//bin//ffmpeg.exe'
 }
