@@ -1,5 +1,6 @@
 import discord
 from discord import FFmpegPCMAudio
+from discord.ui import Select, View
 import requests
 import logging
 from discord.ext import commands
@@ -27,6 +28,29 @@ def after(error):
 
         voice.play(source, after=after)
         del queue[0]
+
+
+@bot.command()
+async def playlist(ctx):  # Информация об очереди
+    embed = discord.Embed(color=0xff9900, title='Очередь из треков')
+    if len(queue) > 1:
+        to_print = ''
+        now_playing = ''
+        for n, track in enumerate(queue):
+            if n == 0:
+                now_playing = f"**{queue[0]['title']} - {queue[0]['artists'][0]}** `Длительность: {queue[0]['duration']}`"
+            else:
+                to_print += f"**{n}**: **{track['title']} - {track['artists'][0]}** `Длительность: {track['duration']}`\n"
+        embed.add_field(name='Сейчас играет', value=f"{now_playing}", inline=False)
+        embed.add_field(name='В очереди', value=f"{to_print}", inline=False)
+
+    elif len(queue) == 1:
+        now_playing = f"**{queue[0]['title']} - {queue[0]['artists'][0]}** `Длительность: {queue[0]['duration']}`"
+        embed.add_field(name='Сейчас играет', value=f"{now_playing}", inline=False)
+    else:
+        embed.add_field(name='Сейчас играет', value="**В данный момент очередь пуста!**", inline=False)
+    embed.set_footer(text='Yandex Music Bot', icon_url=discord_settings['bot_icon'])
+    await ctx.send(ctx.message.author.mention, embed=embed)
 
 
 @bot.command()
@@ -61,7 +85,22 @@ async def play(ctx, *, name_of_song):
         to_say += f'**{i}:** {track["title"]} - {", ".join(track["artists"])}\t`Длительность: {track["duration"]}`\n'
     embed.add_field(name="", value=f"{to_say}", inline=False)
     embed.set_footer(text='Yandex Music Bot', icon_url=discord_settings['bot_icon'])
-    await ctx.send(ctx.message.author.mention, embed=embed)
+
+    selectmenu = Select(options=[
+        discord.SelectOption(label=f'{i}: {track["title"]} - {", ".join(track["artists"])}') for i, track in
+        enumerate(tracks_info, 1)
+    ])
+
+    view = View()
+    view.add_item(selectmenu)
+
+    async def my_callback(interaction: discord.Interaction):
+        await message.edit(view=None)
+        await c(ctx, int(selectmenu.values[0][0]))
+        
+    selectmenu.callback = my_callback
+
+    message = await ctx.send(ctx.message.author.mention, embed=embed, view=view)
 
 
 @bot.command()
