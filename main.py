@@ -91,7 +91,7 @@ async def c(ctx, num: int):
     download_track(to_chose[num]['id'])
 
     await ctx.send(
-        f'{ctx.message.author.mention} добавил(а) `{to_chose[0]["title"]} - {", ".join(to_chose[0]["artists"])}` в очередь')
+        f'{ctx.message.author.mention} добавил(а) `{to_chose[num]["title"]} - {", ".join(to_chose[num]["artists"])}` в очередь')
 
     download_track(queue[0]['id'])
     to_chose.clear()
