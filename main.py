@@ -22,6 +22,7 @@ last_song = dict()
 
 
 def after(error):
+    print(error, type(error))
     global last_song
     if queue:
         source = FFmpegPCMAudio(f'{queue[0]["id"]}.mp3', executable=discord_settings[
@@ -140,12 +141,15 @@ async def play(ctx, *, name_of_song):
     embed = discord.Embed(color=0xff9900, title='**Вот что я нашёл!**')
     for i, track in enumerate(tracks_info, 1):
         to_chose.append(track)
-        to_say += f'**{i}: {track["title"]}** - {track["artists"]}  (`Длительность: {track["duration"]}`)\n'
+        artists = track['artists'].split(', ')
+
+        to_say += f'**{i}: {track["title"]}** - {artists}  (`Длительность: {track["duration"]}`)\n'
+
     embed.add_field(name="", value=f"{to_say}", inline=False)
     embed.set_footer(**discord_settings['embed_footer'])
 
     selectmenu = Select(options=[
-        discord.SelectOption(label=f'{i}: {track["title"]} - {track["artists"]}') for i, track in
+        discord.SelectOption(label=f'{i}: {track["title"][:50]} - {track["artists"][:40]}') for i, track in
         enumerate(tracks_info, 1)
     ])
 
@@ -208,7 +212,6 @@ async def c(ctx: discord.ext.commands.context.Context, num: int):
     num = num - 1
 
     queue.append(to_chose[num])
-    download_track(to_chose[num]['id'])
 
     embed = discord.Embed(color=0xff9900, title=f'**{to_chose[num]["title"]}** - {to_chose[num]["artists"]}')
     embed.set_image(url=to_chose[num]['image_url'])
