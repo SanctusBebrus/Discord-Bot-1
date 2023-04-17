@@ -15,8 +15,7 @@ def get_tracks_info(name: str, count: int = 10):
             {
                 'title': track['title'],
                 'artists': ', '.join([artist['name'] for artist in track['artists']]),
-                'duration': (lambda x: f'{x // 60 // 1000}:{str(x // 1000 - x // 60 // 1000 * 60).rjust(2, "0")}')(
-                    track["duration_ms"]),
+                'duration': track['duration_ms'],
                 'id': track['id'],
                 'image_url': f'https://{track.cover_uri.replace("%%", "400x400")}'
             } for track in tracks

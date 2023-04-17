@@ -1,11 +1,19 @@
-import discord
-from discord import FFmpegPCMAudio
-from discord.ui import Select, View
-import requests
 import logging
+import os
+import time
+from collections import defaultdict
+
+import discord
+import requests
+from discord import FFmpegPCMAudio
 from discord.ext import commands
+from discord.ui import Select, View
+
+import yandex_music_api
 from settings import discord_settings
 from yandex_music_api import get_tracks_info, download_track
+
+import asyncio
 
 logging.basicConfig(
     filename='events.log',
@@ -15,44 +23,66 @@ logging.basicConfig(
 bot = commands.Bot(command_prefix=discord_settings['command_prefix'],
                    intents=discord.Intents.all())
 
-queue = list()
-to_chose = list()
-voice = discord.VoiceClient
-last_song = dict()
+queue = defaultdict(list)
+to_chose = defaultdict(list)
 
 
-def after(error):
-    print(error, type(error))
-    global last_song
-    if queue:
-        source = FFmpegPCMAudio(f'{queue[0]["id"]}.mp3', executable=discord_settings[
+def mls_to_sm(x):
+    return f'{x // 60 // 1000}:{str(x // 1000 - x // 60 // 1000 * 60).rjust(2, "0")}'
+
+
+async def play_queue(ctx: discord.ext.commands.context.Context):
+    print('play_queue func started')
+    channel_id = ctx.channel.id
+    voice = ctx.voice_client
+
+    while queue[channel_id]:
+        if len(queue[channel_id]) >= 3:
+            yandex_music_api.download_track(queue[channel_id][2]['id'], path=str(channel_id) + '/')
+
+        source = FFmpegPCMAudio(f'{channel_id}/{queue[channel_id][0]["id"]}.mp3', executable=discord_settings[
             'ffmpeg_path'])
 
-        voice.play(source, after=after)
-        last_song = queue[0]
-        del queue[0]
+        voice.play(source)
+        print('Started playing...')
+        await asyncio.sleep(queue[channel_id][0]["duration"] / 1000 + 0.1)
+        print('Stopped playing...')
+
+        if len(queue[channel_id]) >= 2:
+            if queue[channel_id][0]["id"] != queue[channel_id][1]["id"]:
+                os.remove(f'{channel_id}/{queue[channel_id][0]["id"]}.mp3')
+                print('File deleted...')
+        else:
+            os.remove(f'{channel_id}/{queue[channel_id][0]["id"]}.mp3')
+            print('File deleted...')
+        del queue[channel_id][0]
 
 
 @bot.command()
 async def playlist(ctx):  # Информация об очереди
     embed = discord.Embed(color=0xff9900, title='Очередь из треков')
+    channel_id = ctx.channel.id
 
-    if len(queue) > 1:
+    embed = discord.Embed(color=0xff9900, title='Очередь из треков')
+
+    if len(queue[channel_id]) > 1:
         to_print = ''
         now_playing = ''
-        for n, track in enumerate([last_song] + queue):
+        for n, track in enumerate(queue[channel_id]):
             if n == 0:
-                now_playing = f"**{queue[0]['title']} - {queue[0]['artists']}** `Длительность: {queue[0]['duration']}`"
+                now_playing = f"**{track['title']} - {track['artists']}** `Длительность: {mls_to_sm(track['duration'])}`"
             else:
-                to_print += f"**{n}**: **{track['title']} - {track['artists']}** `Длительность: {track['duration']}`\n"
+                to_print += f"**{n}**: **{track['title']} - {track['artists']}** `Длительность: {mls_to_sm(track['duration'])}`\n"
         embed.add_field(name='Сейчас играет', value=f"{now_playing}", inline=False)
         embed.add_field(name='В очереди', value=f"{to_print}", inline=False)
 
-    elif len(queue) == 1:
-        now_playing = f"**{queue[0]['title']} - {queue[0]['artists']}** `Длительность: {queue[0]['duration']}`"
+    elif len(queue[channel_id]) == 1:
+        now_playing = f"**{queue[channel_id][0]['title']} - {queue[channel_id][0]['artists']}** `Длительность: {mls_to_sm(queue[channel_id][0]['duration'])}`"
         embed.add_field(name='Сейчас играет', value=f"{now_playing}", inline=False)
     else:
-        embed.add_field(name='Сейчас играет', value="**В данный момент очередь пуста!**", inline=False)
+        embed = discord.Embed(color=0xff9900, title='Я ничего не играю',
+                              description='**В данный момент очередь пуста!**')
+
     embed.set_footer(**discord_settings['embed_footer'])
     await ctx.send(ctx.message.author.mention, embed=embed)
 
@@ -67,7 +97,6 @@ async def hello(ctx):
 
 @bot.command()
 async def randomimage(ctx: discord.ext.commands.context.Context):
-    print(type(ctx))
     response = requests.get(f'https://picsum.photos/1024')
     embed = discord.Embed(color=0xff9900, title='Random Image')
     embed.set_footer(**discord_settings['embed_footer'])
@@ -84,26 +113,31 @@ async def pause(ctx):
 
 @bot.command()
 async def skip(ctx: discord.ext.commands.context.Context):
+    channel_id = ctx.channel.id
+
     if not ctx.voice_client:
         embed = discord.Embed(color=0xff9900, title='**В данный момент очередь пуста!**')
         embed.set_footer(**discord_settings['embed_footer'])
         await ctx.send(embed=embed)
+        print(213)
         return
 
     ctx.voice_client.stop()
-    if queue:
-        print(queue)
+    if queue[channel_id]:
 
         embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек**')
-        embed.add_field(value=f'**{queue[0]["title"]}** - {queue[0]["artists"]}', name=f"**Сейчас играет:**",
+        embed.add_field(value=f'**{queue[channel_id][0]["title"]}** - {queue[channel_id][0]["artists"]}',
+                        name=f"**Сейчас играет:**",
                         inline=False)
-        embed.set_image(url=queue[0]['image_url'])
+        embed.set_image(url=queue[channel_id][0]['image_url'])
         embed.set_footer(**discord_settings['embed_footer'])
 
         await ctx.send(ctx.author.mention, embed=embed)
 
-        after(None)
-        print(123)
+        del queue[channel_id][0]
+
+        await play_queue(ctx)
+
     else:
         embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек!**',
                               description='В данный момент очередь пуста')
@@ -125,6 +159,8 @@ async def resume(ctx):
 
 @bot.command()
 async def play(ctx, *, name_of_song):
+    channel_id = ctx.channel.id
+
     if not ctx.message.author.voice:
         await ctx.send(ctx.message.author.mention +
                        '\n**Я не могу включить Вам песенку, Вы же не в чате**')
@@ -139,12 +175,16 @@ async def play(ctx, *, name_of_song):
 
     to_say = ''
     embed = discord.Embed(color=0xff9900, title='**Вот что я нашёл!**')
+    a = list()
     for i, track in enumerate(tracks_info, 1):
-        to_chose.append(track)
-        artists = track['artists'].split(', ')
+        duration = (lambda x: f'{x // 60 // 1000}:{str(x // 1000 - x // 60 // 1000 * 60).rjust(2, "0")}')(
+            track["duration"])
+        a.append(track)
+        artists = track['artists']
 
-        to_say += f'**{i}: {track["title"]}** - {artists}  (`Длительность: {track["duration"]}`)\n'
+        to_say += f'**{i}: {track["title"]}** - {artists}  (`Длительность: {duration}`)\n'
 
+    to_chose[channel_id] = a.copy()
     embed.add_field(name="", value=f"{to_say}", inline=False)
     embed.set_footer(**discord_settings['embed_footer'])
 
@@ -173,6 +213,8 @@ async def p(ctx, *, name_of_song):
 
 @bot.command()
 async def playbest(ctx, *, name_of_song):
+    channel_id = ctx.channel.id
+
     if not ctx.message.author.voice:
         await ctx.send(ctx.message.author.mention +
                        '\n**Я не могу включить Вам песенку, Вы же не в чате**')
@@ -183,7 +225,7 @@ async def playbest(ctx, *, name_of_song):
         await ctx.send(f'{ctx.message.author.mention} К сожалению, я не ничего не нашёл')
         return
 
-    to_chose.append(tracks_info[0])
+    to_chose[channel_id] = [tracks_info[0]]
     await c(ctx, 1)
 
 
@@ -194,44 +236,40 @@ async def pb(ctx, *, name_of_song):
 
 @bot.command()
 async def join(ctx):
-    global voice
-    if ctx.author.voice:
-        channel = ctx.message.author.voice.channel
-        voice = await channel.connect()
-        if not bot.voice_clients:
-            await channel.connect()
-        elif bot.voice_clients[0].channel == ctx.message.author.voice.channel:
-            pass
-        else:
-            await channel.connect()
+    if not ctx.voice_client:
+        await ctx.message.author.voice.channel.connect()
+        time.sleep(1)
 
 
 async def c(ctx: discord.ext.commands.context.Context, num: int):
-    global voice
+    print('c func started')
+    await join(ctx)
+
+    channel_id = ctx.channel.id
 
     num = num - 1
 
-    queue.append(to_chose[num])
+    queue[channel_id].append(to_chose[channel_id][num])
 
-    embed = discord.Embed(color=0xff9900, title=f'**{to_chose[num]["title"]}** - {to_chose[num]["artists"]}')
-    embed.set_image(url=to_chose[num]['image_url'])
+    embed = discord.Embed(color=0xff9900,
+                          title=f'**{to_chose[channel_id][num]["title"]}** - {to_chose[channel_id][num]["artists"]}')
+    embed.set_image(url=to_chose[channel_id][num]['image_url'])
     embed.set_footer(**discord_settings['embed_footer'])
 
     await ctx.send(
-        f'{ctx.message.author.mention} добавил(а) `{to_chose[num]["title"]} - {to_chose[num]["artists"]}` в очередь',
+        f'{ctx.message.author.mention} добавил(а) `{to_chose[channel_id][num]["title"]} - {to_chose[channel_id][num]["artists"]}` в очередь',
         embed=embed)
 
-    download_track(queue[0]['id'])
-    to_chose.clear()
+    if len(queue[channel_id]) <= 2:
+        if not os.path.exists(str(channel_id)):
+            os.mkdir(str(channel_id))
+
+        download_track(queue[channel_id][len(queue[channel_id]) - 1]['id'], path=str(channel_id) + '/')
 
     try:
-        await ctx.message.author.voice.channel.connect()
+        await play_queue(ctx)
     except Exception:
         pass
-
-    if len(queue) == 1:
-        voice = ctx.message.guild.voice_client
-        after(None)
 
 
 @bot.command()
