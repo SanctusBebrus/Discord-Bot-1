@@ -55,7 +55,7 @@ _Проект №3.1_
 ⦁ `randomimage` - команда, которая выводит случайную картинку на всеобщее обозрение.
 
 
-<a href="https://discord.com/api/oauth2/authorize?client_id=1096388116396384256&permissions=277028755456&scope=bot">Добавить бота!</a>
+<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Добавить бота!</a>
 
 
 
