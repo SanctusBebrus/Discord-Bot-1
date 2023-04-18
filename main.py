@@ -162,7 +162,7 @@ async def skip(ctx: discord.ext.commands.context.Context):
 
         elif len(queue[channel_id]) == 1:
             embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек**')
-            embed.add_field(value=f'В данный момент очередь пуста', inline=False)
+            embed.add_field(name=f'В данный момент очередь пуста', inline=False)
 
             await ctx.send(ctx.author.mention, embed=embed, reference=ctx.message)
 
