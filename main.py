@@ -149,20 +149,26 @@ async def skip(ctx: discord.ext.commands.context.Context):
 
     ctx.voice_client.stop()
     if queue[channel_id]:
+        if len(queue[channel_id]) > 1:
 
-        embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек**')
-        embed.add_field(value=f'**{queue[channel_id][1]["title"]}** - {queue[channel_id][1]["artists"]}',
-                        name=f"**Сейчас играет:**",
-                        inline=False)
-        embed.set_image(url=queue[channel_id][1]['image_url'])
-        embed.set_footer(**discord_settings['embed_footer'])
+            embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек**')
+            embed.add_field(value=f'**{queue[channel_id][1]["title"]}** - {queue[channel_id][1]["artists"]}',
+                            name=f"**Сейчас играет:**",
+                            inline=False)
+            embed.set_image(url=queue[channel_id][1]['image_url'])
+            embed.set_footer(**discord_settings['embed_footer'])
 
-        await ctx.send(ctx.author.mention, embed=embed, reference=ctx.message)
+            await ctx.send(ctx.author.mention, embed=embed, reference=ctx.message)
+
+        elif len(queue[channel_id]) == 1:
+            embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек**')
+            embed.add_field(value=f'**{queue[channel_id][0]["title"]}** - {queue[channel_id][0]["artists"]}',
+                            name='В данный момент очередь пуста', inline=False)
+
+            await ctx.send(ctx.author.mention, embed=embed, reference=ctx.message)
 
         del queue[channel_id][0]
-
         await play_queue(ctx)
-
     else:
         embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек!**',
                               description='В данный момент очередь пуста')
