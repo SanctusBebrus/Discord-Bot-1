@@ -26,6 +26,32 @@ bot = commands.Bot(command_prefix=discord_settings['command_prefix'],
 queue = defaultdict(list)
 to_chose = defaultdict(list)
 
+@bot.event
+async def on_ready():
+    print("Бот готов к работе.")
+    while True:
+        await bot.change_presence(status=discord.Status.online, activity=discord.Activity(name=f'!bhelp',
+                                                                                          type=discord.ActivityType.listening))  # Идёт инфа о команде помощи (префикс изменить)
+        await asyncio.sleep(15)
+
+
+@bot.command()
+async def bhelp(ctx):
+    embed = discord.Embed(color=0xff9900, title="Информация о командах")
+    embed.add_field(name=f"`!bhelp` : ", value="**Вызовет это меню**", inline=False)
+    embed.add_field(name=f"`!p <YourMusic>` или `!play <YourMusic>` : ",
+                    value="**Выведет 10 найденных треков на выбор**", inline=False)
+    embed.add_field(name=f"`!pb <YourMusic>` или `!playbest <YourMusic>` : ",
+                    value="**Сразу добавит первый найденный трек в очередь**", inline=False)
+    embed.add_field(name=f"`!playlist` : ", value="**Выведет информацию об очереди**", inline=False)
+    embed.add_field(name=f"`!pause` : ", value="**Поставит проигрывание музыки на паузу**", inline=False)
+    embed.add_field(name=f"`!resume` : ", value="**Возобновит проигрывание музыки**", inline=False)
+    embed.add_field(name=f"`!skip` : ", value="**Пропустить текущий трек**", inline=False)
+    embed.add_field(name=f"`!join` : ", value="**Бот подключится к вашему голосовому каналу**", inline=False)
+    embed.add_field(name=f"`!leave` : ", value="**Бот покинет голосовой канал**", inline=False)
+    embed.add_field(name=f"`!hello` : ", value="**Поприветствовать бота**", inline=False)
+    embed.add_field(name=f"`!randomimage` : ", value="**Покажет случайную картинку**", inline=False)
+    await ctx.send(ctx.message.author.mention, embed=embed, reference=ctx.message)
 
 def mls_to_sm(x):
     return f'{x // 60 // 1000}:{str(x // 1000 - x // 60 // 1000 * 60).rjust(2, "0")}'
@@ -84,7 +110,7 @@ async def playlist(ctx):  # Информация об очереди
                               description='**В данный момент очередь пуста!**')
 
     embed.set_footer(**discord_settings['embed_footer'])
-    await ctx.send(ctx.message.author.mention, embed=embed)
+    await ctx.send(ctx.message.author.mention, embed=embed, reference=ctx.message)
 
 
 @bot.command()
@@ -92,7 +118,7 @@ async def hello(ctx):
     print(type(ctx))
     author = ctx.message.author
 
-    await ctx.send(f'Привет, {author.mention}!')
+    await ctx.send(f'Привет, {author.mention}!', reference=ctx.message)
 
 
 @bot.command()
@@ -101,14 +127,14 @@ async def randomimage(ctx: discord.ext.commands.context.Context):
     embed = discord.Embed(color=0xff9900, title='Random Image')
     embed.set_footer(**discord_settings['embed_footer'])
     embed.set_image(url=response.url)
-    await ctx.send(ctx.message.author.mention, embed=embed)
+    await ctx.send(ctx.message.author.mention, embed=embed, reference=ctx.message)
 
 
 @bot.command()
 async def pause(ctx):
     if not ctx.voice_client.is_paused():
         ctx.voice_client.pause()
-        await ctx.send(ctx.message.author.mention + ' **приостановил воспроизведение музыки.**')
+        await ctx.send(ctx.message.author.mention + ' **приостановил воспроизведение музыки.**', reference=ctx.message)
 
 
 @bot.command()
@@ -118,21 +144,20 @@ async def skip(ctx: discord.ext.commands.context.Context):
     if not ctx.voice_client:
         embed = discord.Embed(color=0xff9900, title='**В данный момент очередь пуста!**')
         embed.set_footer(**discord_settings['embed_footer'])
-        await ctx.send(embed=embed)
-        print(213)
+        await ctx.send(embed=embed, reference=ctx.message)
         return
 
     ctx.voice_client.stop()
     if queue[channel_id]:
 
         embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек**')
-        embed.add_field(value=f'**{queue[channel_id][0]["title"]}** - {queue[channel_id][0]["artists"]}',
+        embed.add_field(value=f'**{queue[channel_id][1]["title"]}** - {queue[channel_id][1]["artists"]}',
                         name=f"**Сейчас играет:**",
                         inline=False)
-        embed.set_image(url=queue[channel_id][0]['image_url'])
+        embed.set_image(url=queue[channel_id][1]['image_url'])
         embed.set_footer(**discord_settings['embed_footer'])
 
-        await ctx.send(ctx.author.mention, embed=embed)
+        await ctx.send(ctx.author.mention, embed=embed, reference=ctx.message)
 
         del queue[channel_id][0]
 
@@ -142,7 +167,7 @@ async def skip(ctx: discord.ext.commands.context.Context):
         embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек!**',
                               description='В данный момент очередь пуста')
         embed.set_footer(**discord_settings['embed_footer'])
-        await ctx.send(ctx.author.mention, embed=embed)
+        await ctx.send(ctx.author.mention, embed=embed, reference=ctx.message)
 
 
 @bot.command()
@@ -154,7 +179,7 @@ async def s(ctx):
 async def resume(ctx):
     if ctx.voice_client.is_paused():
         ctx.voice_client.resume()
-        await ctx.send(ctx.message.author.mention + ' **продолжил воспроизведение музыки.**')
+        await ctx.send(ctx.message.author.mention + ' **продолжил воспроизведение музыки.**', reference=ctx.message)
 
 
 @bot.command()
@@ -163,14 +188,14 @@ async def play(ctx, *, name_of_song):
 
     if not ctx.message.author.voice:
         await ctx.send(ctx.message.author.mention +
-                       '\n**Я не могу включить Вам песенку, Вы же не в чате**')
+                       '\n**Я не могу включить Вам песенку, Вы же не в чате**', reference=ctx.message)
         return
 
     tracks_info = get_tracks_info(name_of_song)
     message_1 = await ctx.send('***Ищу вашу песенку в Яндекс Музыке...***')
 
     if not tracks_info:
-        await ctx.send(f'{ctx.message.author.mention} К сожалению, я не ничего не нашёл')
+        await ctx.send(f'{ctx.message.author.mention} К сожалению, я не ничего не нашёл', reference=ctx.message)
         return
 
     to_say = ''
@@ -203,7 +228,7 @@ async def play(ctx, *, name_of_song):
 
     selectmenu.callback = my_callback
 
-    message = await ctx.send(ctx.message.author.mention, embed=embed, view=view)
+    message = await ctx.send(ctx.message.author.mention, embed=embed, view=view, reference=ctx.message)
 
 
 @bot.command()
@@ -217,12 +242,12 @@ async def playbest(ctx, *, name_of_song):
 
     if not ctx.message.author.voice:
         await ctx.send(ctx.message.author.mention +
-                       '\n**Я не могу включить Вам песенку, Вы же не в чате**')
+                       '\n**Я не могу включить Вам песенку, Вы же не в чате**', reference=ctx.message)
         return
 
     tracks_info = get_tracks_info(name_of_song, count=1)
     if not tracks_info:
-        await ctx.send(f'{ctx.message.author.mention} К сожалению, я не ничего не нашёл')
+        await ctx.send(f'{ctx.message.author.mention} К сожалению, я не ничего не нашёл', reference=ctx.message)
         return
 
     to_chose[channel_id] = [tracks_info[0]]
@@ -258,7 +283,7 @@ async def c(ctx: discord.ext.commands.context.Context, num: int):
 
     await ctx.send(
         f'{ctx.message.author.mention} добавил(а) `{to_chose[channel_id][num]["title"]} - {to_chose[channel_id][num]["artists"]}` в очередь',
-        embed=embed)
+        embed=embed, reference=ctx.message)
 
     if len(queue[channel_id]) <= 2:
         if not os.path.exists(str(channel_id)):
@@ -276,9 +301,9 @@ async def c(ctx: discord.ext.commands.context.Context, num: int):
 async def leave(ctx):  # Ливнуть из войса
     if ctx.voice_client:
         await ctx.guild.voice_client.disconnect()
-        await ctx.send(f'{ctx.message.author.mention} Пока-пока!')
+        await ctx.send(f'{ctx.message.author.mention} Пока-пока!', reference=ctx.message)
     else:
-        await ctx.send('Я не подключен ни к одному из голосовых каналов')
+        await ctx.send('Я не подключен ни к одному из голосовых каналов', reference=ctx.message)
 
 
 bot.run(discord_settings['token'])
