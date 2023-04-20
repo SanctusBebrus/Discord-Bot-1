@@ -32,13 +32,14 @@ class QueueList(list):
 queue = defaultdict(QueueList)
 to_chose = defaultdict(list)
 
+
 @bot.event
 async def on_ready():
     print("Бот готов к работе.")
-    while True:
-        await bot.change_presence(status=discord.Status.online, activity=discord.Activity(name=f'{discord_settings["command_prefix"]}bhelp',
-                                                                                          type=discord.ActivityType.listening))  # Идёт инфа о команде помощи (префикс изменить)
-        await asyncio.sleep(15)
+    await bot.change_presence(status=discord.Status.online,
+                              activity=discord.Activity(name=f'{discord_settings["command_prefix"]}bhelp',
+                                                        type=discord.ActivityType.listening))  # Идёт инфа о команде помощи (префикс изменить)
+
 
 @bot.command()
 async def bhelp(ctx):
@@ -48,17 +49,29 @@ async def bhelp(ctx):
                     value="**Выведет 10 найденных треков на выбор**", inline=False)
     embed.add_field(name=f"`{discord_settings['command_prefix']}playbest <YourMusic>` : ",
                     value="**Сразу добавит первый найденный трек в очередь**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}playlist` : ", value="**Выведет информацию об очереди**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}pause` : ", value="**Поставит проигрывание музыки на паузу**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}resume` : ", value="**Возобновит проигрывание музыки**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}skip` : ", value="**Пропустить текущий трек**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}join` : ", value="**Бот подключится к вашему голосовому каналу**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}leave` : ", value="**Бот покинет голосовой канал**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}hello` : ", value="**Поприветствовать бота**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}randomimage` : ", value="**Покажет случайную картинку**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}playalbum <AlbumName>` : ", value="**Поставит в очередь целый плейлист**", inline=False)
-    embed.add_field(name=f"`{discord_settings['command_prefix']}playchart` : ", value="**Бот перейдет в режим чартов и начнет проигрывание самых популярных треков на Яндекс Музыке**", inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}playlist` : ",
+                    value="**Выведет информацию об очереди**", inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}pause` : ",
+                    value="**Поставит проигрывание музыки на паузу**", inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}resume` : ", value="**Возобновит проигрывание музыки**",
+                    inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}skip` : ", value="**Пропустить текущий трек**",
+                    inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}join` : ",
+                    value="**Бот подключится к вашему голосовому каналу**", inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}leave` : ", value="**Бот покинет голосовой канал**",
+                    inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}hello` : ", value="**Поприветствовать бота**",
+                    inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}randomimage` : ",
+                    value="**Покажет случайную картинку**", inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}playalbum <AlbumName>` : ",
+                    value="**Поставит в очередь целый плейлист**", inline=False)
+    embed.add_field(name=f"`{discord_settings['command_prefix']}playchart` : ",
+                    value="**Бот перейдет в режим чартов и начнет проигрывание самых популярных треков на Яндекс Музыке**",
+                    inline=False)
     await ctx.send(ctx.message.author.mention, embed=embed, reference=ctx.message)
+
 
 def on_queue_append(ctx):
     if len(queue[ctx.channel.id]) <= 2:
@@ -212,8 +225,7 @@ async def skip(ctx: discord.ext.commands.context.Context):
         del queue[channel_id][0]
         await play_queue(ctx)
     else:
-        embed = discord.Embed(color=0xff9900, title='**Вы успешно пропустили трек!**',
-                              description='В данный момент очередь пуста')
+        embed = discord.Embed(color=0xff9900, title='**В данный момент очередь пуста**')
         embed.set_footer(**discord_settings['embed_footer'])
         await ctx.send(embed=embed, reference=ctx.message)
 
@@ -222,7 +234,9 @@ async def skip(ctx: discord.ext.commands.context.Context):
 async def resume(ctx):
     if ctx.voice_client.is_paused():
         ctx.voice_client.resume()
-        await ctx.send(' **Вы продолжили воспроизведение музыки.** ')
+        embed = discord.Embed(color=0xff9900, title=' **Вы продолжили воспроизведение музыки.** ')
+        embed.set_footer(**discord_settings['embed_footer'])
+        await ctx.send(embed=embed, reference=ctx.message)
 
 
 @bot.command()
