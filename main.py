@@ -36,7 +36,7 @@ to_chose = defaultdict(list)
 async def on_ready():
     print("Бот готов к работе.")
     while True:
-        await bot.change_presence(status=discord.Status.online, activity=discord.Activity(name=f'{discord_settings['command_prefix']}bhelp',
+        await bot.change_presence(status=discord.Status.online, activity=discord.Activity(name=f'{discord_settings["command_prefix"]}bhelp',
                                                                                           type=discord.ActivityType.listening))  # Идёт инфа о команде помощи (префикс изменить)
         await asyncio.sleep(15)
 
